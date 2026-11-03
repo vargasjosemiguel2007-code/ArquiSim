@@ -175,6 +175,49 @@ Resultado ejecutar(CPU *cpu, const Instruccion *in)
         return escribir_byte(cpu, cpu->reg[in->rs] + (uint32_t)in->simm, (uint8_t)cpu->reg[in->rt]);
     }
 
+    /* ================ Etapa 3: control de flujo ================ */
+
+    /* ---------------- saltos condicionales: relativos al PC (que ya vale PC + 4) ---------------- */
+    if (es(in, "bne")) {
+        if (cpu->reg[in->rs] != cpu->reg[in->rt])
+            cpu->pc += (uint32_t)in->simm << 2;
+        return OK;
+    }
+    if (es(in, "beq")) {
+        if (cpu->reg[in->rs] == cpu->reg[in->rt])
+            cpu->pc += (uint32_t)in->simm << 2;
+        return OK;
+    }
+
+    /* ---------------- saltos tipo J: pseudodirectos ---------------- */
+    if (es(in, "j")) {
+        cpu->pc = (cpu->pc & 0xF0000000u) | (in->direccion << 2);
+        return OK;
+    }
+    if (es(in, "jal")) {
+        escribir_registro(cpu, 31, cpu->pc);    /* $ra = dirección de retorno */
+        cpu->pc = (cpu->pc & 0xF0000000u) | (in->direccion << 2);
+        return OK;
+    }
+    if (es(in, "jr")) {
+        cpu->pc = cpu->reg[in->rs];
+        return OK;
+    }
+
+    /* ---------------- comparaciones: escriben 0 o 1, NO tocan las banderas ---------------- */
+    if (es(in, "slt")) {
+        escribir_registro(cpu, in->rd, (int32_t)cpu->reg[in->rs] < (int32_t)cpu->reg[in->rt]);
+        return OK;
+    }
+    if (es(in, "sltu")) {
+        escribir_registro(cpu, in->rd, cpu->reg[in->rs] < cpu->reg[in->rt]);
+        return OK;
+    }
+    if (es(in, "slti")) {
+        escribir_registro(cpu, in->rt, (int32_t)cpu->reg[in->rs] < in->simm);
+        return OK;
+    }
+
     /*
      * TODO: para cada instrucción nueva
      *   1. agregue su línea en isa.txt (formato, opcode, funct, operandos)
