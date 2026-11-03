@@ -73,4 +73,23 @@ lb     I  100000  -       rt,imm(rs)   # rt = MEM8[rs + imm]  (extensión de sig
 lbu    I  100100  -       rt,imm(rs)   # rt = MEM8[rs + imm]  (extensión con ceros)
 sb     I  101000  -       rt,imm(rs)   # MEM8[rs + imm] = 8 bits bajos de rt
 
+# ---------------- Etapa 3: control de flujo ----------------
+bne    I  000101  -       rs,rt,label  # si rs != rt: PC = PC + 4 + imm*4
+beq    I  000100  -       rs,rt,label  # si rs == rt: PC = PC + 4 + imm*4
+j      J  000010  -       label        # PC = (PC+4)[31:28] | dirección*4
+jal    J  000011  -       label        # $ra = PC + 4; salta como j
+jr     R  000000  001000  rs           # PC = rs
+slt    R  000000  101010  rd,rs,rt     # rd = (rs < rt) ? 1 : 0, con signo
+sltu   R  000000  101011  rd,rs,rt     # rd = (rs < rt) ? 1 : 0, sin signo
+slti   I  001010  -       rt,rs,imm    # rt = (rs < imm) ? 1 : 0, con signo
+
+# ---------------- Etapa 3: pseudoinstrucciones (solo isa.txt) ----------------
+move   R  000000  100000  rd,rs,rt=$zero          add   # move $t0, $t1  ->  add $t0, $t1, $zero
+not    R  000000  100111  rd,rs,rt=$zero          nor   # not $t0, $t1   ->  nor $t0, $t1, $zero
+clear  R  000000  100000  rd,rs=$zero,rt=$zero    add   # clear $t0      ->  add $t0, $zero, $zero
+nop    R  000000  000000  rd=$zero,rt=$zero       sll   # nop            ->  sll $zero, $zero, 0
+li     I  001000  -       rt,rs=$zero,imm         addi  # li $t0, 42     ->  addi $t0, $zero, 42
+la     I  001000  -       rt,rs=$zero,imm         addi  # la $t0, A      ->  addi $t0, $zero, A
+b      I  000100  -       rs=$zero,rt=$zero,label beq   # b LOOP         ->  beq $zero, $zero, LOOP
+
 # ---------------- Agregue aquí las instrucciones de las etapas 2 a 5 ----------------
