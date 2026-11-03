@@ -33,8 +33,10 @@
  * en ese caso devuelva ese mismo resultado:
  *       if (leer_palabra(cpu, dir, &valor) != OK) return EXCEPCION;
  */
+#include <stdint.h>
 #include <string.h>
 #include "cpu.h"
+#include "sistema.h"
 
 static int es(const Instruccion *in, const char *mnemonico)
 {
@@ -216,6 +218,100 @@ Resultado ejecutar(CPU *cpu, const Instruccion *in)
     if (es(in, "slti")) {
         escribir_registro(cpu, in->rt, (int32_t)cpu->reg[in->rs] < in->simm);
         return OK;
+    }
+
+    /* ================ Etapa 5: extensiones del ISA ================ */
+
+    /* ---------------- acumulador: actualiza banderas, sin excepción ---------------- */
+    if (es(in, "mtacc")) {
+        cpu->acc = cpu->reg[in->rs];
+        return OK;
+    }
+    if (es(in, "mfacc")) {
+        escribir_registro(cpu, in->rd, cpu->acc);
+        return OK;
+    }
+    if (es(in, "adda")) {
+        cpu->acc = sumar_con_banderas(cpu, cpu->acc, cpu->reg[in->rt]);
+        return OK;
+    }
+    if (es(in, "suba")) {
+        cpu->acc = restar_con_banderas(cpu, cpu->acc, cpu->reg[in->rt]);
+        return OK;
+    }
+    if (es(in, "addia")) {
+        cpu->acc = sumar_con_banderas(cpu, cpu->acc, (uint32_t)in->simm);
+        return OK;
+    }
+
+    /* ---------------- cmp: rs - rt solo para las banderas ---------------- */
+    if (es(in, "cmp")) {
+        restar_con_banderas(cpu, cpu->reg[in->rs], cpu->reg[in->rt]);
+        return OK;
+    }
+
+    /* ---------------- saltos según banderas (tipo J) ---------------- */
+    if ((es(in, "jz") && (cpu->banderas & BANDERA_Z)) ||
+        (es(in, "jn") && (cpu->banderas & BANDERA_N)) ||
+        (es(in, "jc") && (cpu->banderas & BANDERA_C)) ||
+        (es(in, "jv") && (cpu->banderas & BANDERA_V))) {
+        cpu->pc = (cpu->pc & 0xF0000000u) | (in->direccion << 2);
+        return OK;
+    }
+    if (es(in, "jz") || es(in, "jn") || es(in, "jc") || es(in, "jv"))
+        return OK;      /* la bandera vale 0: no salta */
+
+    /* ---------------- multiplicación: producto de 64 bits en HI:LO ---------------- */
+    if (es(in, "mult")) {
+        int64_t p = (int64_t)(int32_t)cpu->reg[in->rs] * (int64_t)(int32_t)cpu->reg[in->rt];
+        cpu->hi = (uint32_t)((uint64_t)p >> 32);
+        cpu->lo = (uint32_t)p;
+        return OK;
+    }
+    if (es(in, "multu")) {
+        uint64_t p = (uint64_t)cpu->reg[in->rs] * (uint64_t)cpu->reg[in->rt];
+        cpu->hi = (uint32_t)(p >> 32);
+        cpu->lo = (uint32_t)p;
+        return OK;
+    }
+    if (es(in, "mul")) {
+        escribir_registro(cpu, in->rd, cpu->reg[in->rs] * cpu->reg[in->rt]);
+        return OK;
+    }
+
+    /* ---------------- división: LO = cociente, HI = residuo ---------------- */
+    if (es(in, "div")) {
+        int32_t a = (int32_t)cpu->reg[in->rs], b = (int32_t)cpu->reg[in->rt];
+        if (b == 0)
+            return excepcion(cpu, "división entre cero en div");
+        if (a == INT32_MIN && b == -1) {        /* el cociente no cabe en 32 bits */
+            cpu->lo = (uint32_t)a;
+            cpu->hi = 0;
+            return OK;
+        }
+        cpu->lo = (uint32_t)(a / b);
+        cpu->hi = (uint32_t)(a % b);
+        return OK;
+    }
+    if (es(in, "divu")) {
+        if (cpu->reg[in->rt] == 0)
+            return excepcion(cpu, "división entre cero en divu");
+        cpu->lo = cpu->reg[in->rs] / cpu->reg[in->rt];
+        cpu->hi = cpu->reg[in->rs] % cpu->reg[in->rt];
+        return OK;
+    }
+    if (es(in, "mfhi")) {
+        escribir_registro(cpu, in->rd, cpu->hi);
+        return OK;
+    }
+    if (es(in, "mflo")) {
+        escribir_registro(cpu, in->rd, cpu->lo);
+        return OK;
+    }
+
+    /* ---------------- syscall: lo atiende el sistema (número en $v0) ---------------- */
+    if (es(in, "syscall")) {
+        return llamar_sistema(cpu);
     }
 
     /*
