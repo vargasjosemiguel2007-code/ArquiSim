@@ -66,4 +66,11 @@ ori    I  001101  -       rt,rs,imm    # rt = rs OR imm      (imm extendido con 
 xori   I  001110  -       rt,rs,imm    # rt = rs XOR imm     (imm extendido con ceros)
 lui    I  001111  -       rt,imm       # rt = imm << 16
 
+# ---------------- Etapa 2: acceso a memoria (tipo I) ----------------
+lw     I  100011  -       rt,imm(rs)   # rt = MEM32[rs + imm]
+sw     I  101011  -       rt,imm(rs)   # MEM32[rs + imm] = rt
+lb     I  100000  -       rt,imm(rs)   # rt = MEM8[rs + imm]  (extensión de signo)
+lbu    I  100100  -       rt,imm(rs)   # rt = MEM8[rs + imm]  (extensión con ceros)
+sb     I  101000  -       rt,imm(rs)   # MEM8[rs + imm] = 8 bits bajos de rt
+
 # ---------------- Agregue aquí las instrucciones de las etapas 2 a 5 ----------------
