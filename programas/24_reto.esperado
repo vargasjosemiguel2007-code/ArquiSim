@@ -1,0 +1,5 @@
+# 4 negativos en el arreglo: -3, -1, -7, -4
+$v0 = 4
+mem[0x220] = 4                  # NEG
+mem[0x400] = 0x01010101         # fila 0: pixeles (0,0) a (3,0) en rojo
+mem[0x404] = 0                  # pixeles (4,0) a (7,0) apagados
