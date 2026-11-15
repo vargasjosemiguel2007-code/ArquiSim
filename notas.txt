@@ -1,0 +1,23 @@
+Taller 2 - ArquiSim
+Arquitectura de Computadores 2026-3
+
+Integrantes:
+- Carlos Andres Montenegro Cubillos
+- Sergio Alejandro Blanco Rojas
+- Jose Miguel Vargas Gallego
+
+Como correrlo:
+1. make            (compila y crea ./sim)
+2. make test       (corre los programas de prueba, deben pasar 25 de 25)
+3. ./sim programas/ejemplos/00_suma.asm      (abre un programa en la interfaz)
+
+Que hicimos:
+- Etapa 1: ejercicios de programas/etapa_1
+- Etapa 2: lw, sw, lb, lbu, sb
+- Etapa 3: bne, beq, j, jal, jr, slt, sltu, slti y las pseudoinstrucciones
+- Etapa 4: entrada/salida (pantalla y botones), no lleva instrucciones nuevas
+- Etapa 5: acumulador, banderas, mult/div y syscall
+- Reto: programas/24_reto.asm (cuenta los negativos de un arreglo)
+
+Los cambios estan en isa.txt y src/ejecutar.c.
+Las respuestas a las preguntas estan en respuestas/Taller2_respuestas.pdf
